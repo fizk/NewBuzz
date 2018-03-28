@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "sourceMap": true,
+        "allowJs": true,
+
+        "typeRoots": [
+            "node_modules/@types",
+            "@types"
+        ],
+        "jsx": "react",
+
+        "outDir": "./dist",
+        "rootDir": "./"
+    },
+    "include": [
+        "./src/**/*",
+        "./tests/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}
