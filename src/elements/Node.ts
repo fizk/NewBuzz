@@ -5,6 +5,7 @@ import KeyEvent from "../types/KeyEvent";
 import {Point} from "../types/Point";
 import {COLOR} from "../types/COLOR";
 import EventManager from "../util/EventManager";
+import {colorShade} from "../util/color";
 
 
 export default class Node{
@@ -16,8 +17,8 @@ export default class Node{
     stretch: boolean = false;
     nodeWidth: number = 0;
     nodeHeight: number = 0;
-    dimensions: Dimension;
-    static eventManager: EventManager = new EventManager();
+    dimensions: Dimension = {x: 0, y: 0, width: 0, height: 0};
+    static eventManager: EventManager = undefined;
     events: {
         mouseDown: ((event: Event) => void)[],
         mouseMove: ((event: Event) => void)[],
@@ -51,8 +52,12 @@ export default class Node{
     absolute: boolean = false;
     position: Point = {x: 0, y: 0};
 
-    constructor(key: number | string) {
+    constructor(key?: number | string) {
         this.key = key;
+    }
+
+    deconstructor(): void {
+
     }
 
     set height(height: number) {
@@ -152,23 +157,35 @@ export default class Node{
         this.children = [];
     }
 
-    removeChild(key: number | string): void {
-        this.children = this.children.filter((child: Node) => child.key !== key);
+    removeChild(node: Node): void {
+        const index = this.children.findIndex((child: Node) => {
+            return node === child;
+        });
+        if (index >= 0) {
+            this.children[index].deconstructor();
+            this.children = [
+                ...this.children.slice(0, index),
+                ...this.children.slice(index + 1),
+            ];
+        }
     }
 
-    setChild(child: Node) {
+    setChild(child: Node): Node {
         this.removeChildren();
         this.addChild(child);
+        return this;
     }
 
-    addChild(child: Node): void {
+    addChild(child: Node): Node {
         child.parent = this;
         child.context = this.context;
-        this.children.push(child)
+        this.children.push(child);
+        return this;
     }
 
-    addChildren(children: Node[]): void {
+    addChildren(children: Node[]): Node {
         children.forEach(this.addChild.bind(this));
+        return this;
     }
 
     getChildByKey(key: number | string): Node | undefined {
@@ -180,31 +197,99 @@ export default class Node{
     drawBorder(dimensions: Dimension, active: boolean = false) {
         this.context.save();
 
-        this.context.strokeStyle = active ? COLOR.BORDER_DARK: COLOR.BORDER_LIGHT;
+        // this.context.strokeStyle = active ? COLOR.BORDER_DARK: COLOR.BORDER_LIGHT;
+        //
+        // this.context.beginPath();
+        // this.context.moveTo(dimensions.x, dimensions.y);
+        // this.context.lineTo(dimensions.width, dimensions.y);
+        // this.context.stroke();
+        //
+        // this.context.beginPath();
+        // this.context.moveTo(dimensions.x, dimensions.y);
+        // this.context.lineTo(dimensions.x, dimensions.height);
+        // this.context.stroke();
+        //
+        // this.context.strokeStyle = active ? COLOR.BORDER_LIGHT : COLOR.BORDER_DARK;
+        //
+        // this.context.beginPath();
+        // this.context.moveTo(dimensions.width, dimensions.height);
+        // this.context.lineTo(dimensions.width, dimensions.y);
+        // this.context.stroke();
+        //
+        // this.context.beginPath();
+        // this.context.moveTo(dimensions.width, dimensions.height);
+        // this.context.lineTo(dimensions.x, dimensions.height);
+        // this.context.stroke();
 
-        this.context.beginPath();
-        this.context.moveTo(dimensions.x, dimensions.y);
-        this.context.lineTo(dimensions.width, dimensions.y);
-        this.context.stroke();
 
-        this.context.beginPath();
-        this.context.moveTo(dimensions.x, dimensions.y);
-        this.context.lineTo(dimensions.x, dimensions.height);
-        this.context.stroke();
+        this.context.lineCap = "square";
 
-        this.context.strokeStyle = active ? COLOR.BORDER_LIGHT : COLOR.BORDER_DARK;
+        if (!active) {
 
-        this.context.beginPath();
-        this.context.moveTo(dimensions.width, dimensions.height);
-        this.context.lineTo(dimensions.width, dimensions.y);
-        this.context.stroke();
+            //upper
+            this.context.strokeStyle = colorShade(COLOR.STAGE, 0.15);
+            this.context.beginPath();
+            this.context.moveTo(0, dimensions.height-1);
+            this.context.lineTo(0, 0);
+            this.context.lineTo(dimensions.width-1, 0);
+            this.context.stroke();
 
-        this.context.beginPath();
-        this.context.moveTo(dimensions.width, dimensions.height);
-        this.context.lineTo(dimensions.x, dimensions.height);
-        this.context.stroke();
+            this.context.strokeStyle = colorShade(COLOR.STAGE, 1);
+            this.context.beginPath();
+            this.context.moveTo(1, dimensions.height-2);
+            this.context.lineTo(1, 1);
+            this.context.lineTo(dimensions.width-2, 1);
+            this.context.stroke();
+
+            //lower
+            this.context.strokeStyle = colorShade(COLOR.STAGE, -1);
+            this.context.beginPath();
+            this.context.moveTo(0, dimensions.height);
+            this.context.lineTo(dimensions.width, dimensions.height);
+            this.context.lineTo(dimensions.width, 0);
+            this.context.stroke();
+
+            this.context.strokeStyle = colorShade(COLOR.STAGE, -0.2);
+            this.context.beginPath();
+            this.context.moveTo(1, dimensions.height-1);
+            this.context.lineTo(dimensions.width-1, dimensions.height-1);
+            this.context.lineTo(dimensions.width-1, 1);
+            this.context.stroke();
+
+        } else {
+            //upper
+            this.context.strokeStyle = colorShade(COLOR.STAGE, 0.15);
+            this.context.beginPath();
+            this.context.moveTo(0, dimensions.height-1);
+            this.context.lineTo(0, 0);
+            this.context.lineTo(dimensions.width-1, 0);
+            this.context.stroke();
+
+            this.context.strokeStyle = colorShade(COLOR.STAGE, -1);
+            this.context.beginPath();
+            this.context.moveTo(1, dimensions.height-2);
+            this.context.lineTo(1, 1);
+            this.context.lineTo(dimensions.width-2, 1);
+            this.context.stroke();
+
+            //lower
+            this.context.strokeStyle = colorShade(COLOR.STAGE, 1);
+            this.context.beginPath();
+            this.context.moveTo(0, dimensions.height);
+            this.context.lineTo(dimensions.width, dimensions.height);
+            this.context.lineTo(dimensions.width, 0);
+            this.context.stroke();
+
+            this.context.strokeStyle = colorShade(COLOR.STAGE, 0.15);
+            this.context.beginPath();
+            this.context.moveTo(1, dimensions.height-1);
+            this.context.lineTo(dimensions.width-1, dimensions.height-1);
+            this.context.lineTo(dimensions.width-1, 1);
+            this.context.stroke();
+        }
 
         this.context.restore();
+
     }
 
     draw(x: number = 0, y: number = 0): void {

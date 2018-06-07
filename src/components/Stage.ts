@@ -3,7 +3,7 @@ import MachineView from "./Screens/MachineView";
 import PatternView from "./Screens/PatternView";
 import SequenceView from "./Screens/SequenceView";
 import {View} from "../types/View";
-import CustomEvent from "../types/CustomEvent";
+import CustomEvent, {ViewChangeRequest} from "../types/CustomEvent";
 import State from "../types/State";
 
 export default class Stage extends Node {
@@ -16,17 +16,17 @@ export default class Stage extends Node {
         super(key);
         this.stretch = true;
 
-        this.machineView = new MachineView(String(View.Machine), state);
+        this.machineView = new MachineView(String(View.Machine));
         this.patternView = new PatternView(String(View.Pattern), state);
-        this.sequenceView = new SequenceView(String(View.Sequence), state);
+        this.sequenceView = new SequenceView(String(View.Sequence));
 
-        this.addEventListener('on-view-change', (event: CustomEvent) => {
+        this.addEventListener('on-viewChange', (event: CustomEvent<ViewChangeRequest>) => {
             switch (event.detail.view) {
                 case View.Sequence:
                     this.setChild(this.sequenceView);
                 break;
                 case View.Pattern:
-                    this.patternView.pattern= event.detail.pattern;
+                    // this.patternView.pattern= event.detail.pattern;
                     this.setChild(this.patternView);
                 break;
                 case View.Machine:

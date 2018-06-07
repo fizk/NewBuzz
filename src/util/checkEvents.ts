@@ -35,5 +35,8 @@ export default (event, type: string, application: Application) => {
     }
     callbackArray.forEach(cb => {
         cb(e);
-    })
+    });
+    if (callbackArray.length > 0) {
+        application.draw(0, 0);
+    }
 }

@@ -5,9 +5,18 @@ import {Pattern} from "../types/Pattern";
 
 export default class SequenceList extends Node {
     patterns: any[] = [];
+
     constructor(key: any) {
         super(key);
         this.type = NOTE_TYPE.IN_LINE;
+    }
+
+    get width() {
+        return 150
+    }
+
+    get height() {
+        return this.parent.height;
     }
 
     draw(x: number = 0, y: number = 0): void {

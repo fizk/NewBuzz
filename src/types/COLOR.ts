@@ -4,4 +4,7 @@ export enum COLOR {
     BORDER_LIGHT = '#ffffff',
     BORDER_DARK = '#808080',
     STAGE = '#dad6c9',
+
+    WINDOWS = '#777777',
+    BUZZ = '',
 }

@@ -1,23 +1,40 @@
 {
-  "name": "NewSholaBuzz",
+  "name": "NewScoleBuzz",
   "version": "1.0.0",
   "description": "",
-  "main": "webpack.config.js",
-  "dependencies": {
-    "@types/mocha": "^2.2.42",
-    "chai": "^4.1.2",
-    "mocha": "^3.5.0",
-    "ts-loader": "^2.3.4",
-    "typescript": "^2.5.2",
-    "webpack": "^3.5.5"
-  },
-  "devDependencies": {
-    "ts-node": "^3.3.0"
-  },
+  "main": "src/index.js",
   "scripts": {
-    "webpack": "$(npm bin)/webpack -w"
+    "build:dev": "./node_modules/.bin/babel --extensions \".tsx,.ts\" -w --out-dir ./dist ./src/",
+    "dev": "npm run build:dev & npm run webpack-dev-server",
+    "lint": "./node_modules/.bin/eslint ./src/**/*.(ts|tsx)",
+    "webpack:watch": "$(npm bin)/webpack -w",
+    "webpack-dev-server": "$(npm bin)/webpack-dev-server"
   },
-  "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@babel/cli": "^7.0.0-beta.42",
+    "@babel/core": "^7.0.0-beta.42",
+    "@babel/preset-es2015": "^7.0.0-beta.42",
+    "@babel/preset-react": "^7.0.0-beta.42",
+    "@babel/preset-stage-2": "^7.0.0-beta.42",
+    "@babel/preset-typescript": "^7.0.0-beta.42",
+    "babel-loader": "^7.1.4",
+    "eslint": "^4.18.2",
+    "eslint-plugin-typescript": "^0.9.0",
+    "extract-text-webpack-plugin": "^v3.0.2",
+    "ts-loader": "^v3.5.0",
+    "typescript": "^2.7.2",
+    "typescript-eslint-parser": "^14.0.0",
+    "webpack": "^v3.11.0",
+    "webpack-dev-server": "^2.9.4"
+  },
+  "babel": {
+    "presets": [
+      "@babel/typescript",
+      "@babel/preset-es2015",
+      "@babel/preset-stage-2"
+    ],
+    "plugins": []
+  }
 }
