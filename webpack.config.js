@@ -1,21 +1,33 @@
 const path = require('path');
 
 module.exports = {
+    name: 'musix',
     entry: {
-        bundle: './src/main.ts',
+        'bundle': './src/index.ts',
     },
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.join(__dirname, 'dist'),
         filename: '[name].js',
-    },
-    resolve: {
-        // Add `.ts` and `.tsx` as a resolvable extension.
-        extensions: ['.ts', '.js'] // note if using webpack 1 you'd also need a '' in the array as well
+        publicPath: '/',
     },
     module: {
-        loaders: [ // loaders will work with webpack 1 or 2; but will be renamed "rules" in future
-            // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
-            { test: /\.tsx?$/, loader: 'ts-loader' }
-        ]
-    }
+        rules: [
+            {
+                test: /\.tsx?$/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
+            },
+
+        ],
+    },
+    resolve: {
+        extensions: [ '.tsx', '.ts', '.js', ],
+    },
+    devServer: {
+        contentBase: path.join(__dirname, 'dist'),
+        port: 9999,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+        },
+    },
 };

@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es6",
+        "target": "es2017",
         "sourceMap": true,
         "allowJs": true,
 
@@ -12,11 +12,14 @@
         "jsx": "react",
 
         "outDir": "./dist",
-        "rootDir": "./"
+        "rootDirs": [
+            "./src",
+
+        ],
     },
     "include": [
         "./src/**/*",
-        "./tests/**/*"
+
     ],
     "exclude": [
         "node_modules",

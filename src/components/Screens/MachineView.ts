@@ -9,62 +9,85 @@ import MenuItem from "../../elements/MenuItem";
 import Generator from "../Modules/Generator";
 import State from "../../types/State";
 import ModuleProp from "../../types/ModuleProp";
+import CustomEvent, {ModuleConnectionRequest, ModuleCreateRequest} from "../../types/CustomEvent";
 
 export default class MachineView extends Node {
-    state: State;
     selectedModule: Module = undefined;
+    connectModule: Module = undefined;
     viewContextMenu: Menu;
     connection: {from: Point, to: Point} = undefined;
 
-    constructor(key: string, state: State) {
+    constructor(key: string) {
         super(key);
-        this.state = state;
         this.stretch = true;
 
-        this.handleModuleSelect = this.handleModuleSelect.bind(this);
-        this.handleModuleDeselect = this.handleModuleDeselect.bind(this);
-        this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleContextMenu = this.handleContextMenu.bind(this);
-        this.handleMouseUp = this.handleMouseUp.bind(this);
+        this.handleMoveModule = this.handleMoveModule.bind(this);
+        this.handleAddModule = this.handleAddModule.bind(this);
+        this.handleSelectModule = this.handleSelectModule.bind(this);
+        this.handleUnSelectModule = this.handleUnSelectModule.bind(this);
+        this.handleClearContextMenu = this.handleClearContextMenu.bind(this);
+
+        this.handleConnectModuleStart = this.handleConnectModuleStart.bind(this);
+        this.handleConnectModule = this.handleConnectModule.bind(this);
+        this.handleConnectModuleEnd = this.handleConnectModuleEnd.bind(this);
+        this.handleModuleConnect = this.handleModuleConnect.bind(this);
 
         this.addEventListener('contextMenu', this.handleContextMenu);
-        this.addEventListener('mouseUp', this.handleMouseUp);
-        this.addEventListener('mouseMove', this.handleMouseMove);
+        this.addEventListener('mouseDown', this.handleClearContextMenu);
+        this.addEventListener('on-addModule', this.handleAddModule);
+        this.addEventListener('on-moduleSelect', this.handleSelectModule);
+        this.addEventListener('on-moduleUnSelect', this.handleUnSelectModule);
+        this.addEventListener('on-moduleConnectStart', this.handleConnectModuleStart);
+
+        this.addEventListener('on-connectModule', this.handleModuleConnect);
     }
 
-    private createModule(key: any, value: ModuleProp): Module {
-        switch (value.type) {
+    handleClearContextMenu() {
+        this.removeChild(this.viewContextMenu);
+        this.viewContextMenu = undefined;
+    }
+
+    handleMoveModule(event: MouseEvent) {
+        this.selectedModule.position.x = event.offsetX - 10; //@todo put the cursor in the right place
+        this.selectedModule.position.y = event.offsetY - 10; //@todo put the cursor in the right place
+    }
+
+    handleAddModule(event: CustomEvent<ModuleProp>) {
+        switch (event.detail.type) {
             case ModuleType.MASTER:
-                return new Master(key, value);
+                this.addChild(new Master(event.detail.key, event.detail));
+                break;
             case ModuleType.GEN:
-                return new Generator(key, value);
-            default:
-                return undefined;
+                this.addChild(new Generator(event.detail.key, event.detail));
+                break;
         }
     }
 
-    private moduleList(): Module[] {
-        return Array.from(this.state.modules.entries()).map(([key, value]) => {
-            const currentNode: Module = <Module>this.getChildByKey(key);
-            if(currentNode) {
-                currentNode.position = value.position;
-                return currentNode
-            } else {
-                const newNode = this.createModule(key, value);
-                if (!newNode) {
-                    return undefined;
-                }
-                newNode.addEventListener('mouseDown', this.handleModuleSelect);
-                newNode.addEventListener('mouseUp', this.handleModuleDeselect);
-                return newNode;
-            }
-        }).filter(module => module !== undefined);
+    handleSelectModule(event: CustomEvent<ModuleProp>) {
+        this.selectedModule = <Module>this.children.filter((child: Node) => {
+            return child.key === event.detail.key;
+        }).reduce((a, b) => b, undefined);
+
+        if (this.selectedModule) {
+            this.addEventListener('mouseMove', this.handleMoveModule);
+        }
+    }
+
+    handleUnSelectModule(event: CustomEvent<ModuleProp>) {
+        this.selectedModule = undefined;
+        this.removeEventListener('mouseMove', this.handleMoveModule);
+    }
+
+    handleModuleConnect(event: CustomEvent<ModuleConnectionRequest>) {
+        const toModule = this.getModuleByKey(event.detail.to);
+        toModule.config.ref.push(event.detail.from);
     }
 
     handleContextMenu(event: MouseEvent) {
         const menuItemBass3: MenuItem = new MenuItem('bass3', 'Bass 3');
-        menuItemBass3.addEventListener('mouseUp', (event: MouseEvent) => {
-            this.fire('on-module-create', {
+        menuItemBass3.addEventListener('mouseDown', (event: MouseEvent) => {
+            this.fire('on-moduleCreate', <ModuleCreateRequest>{
                 type: ModuleType.GEN,
                 label: 'Bass 3',
                 position: {
@@ -72,70 +95,90 @@ export default class MachineView extends Node {
                     y: event.offsetY + contextMenu.position.y
                 },
             });
-            this.viewContextMenu = undefined;
+            this.handleClearContextMenu();
         });
 
         const contextMenu: Menu = new Menu('', {x: event.offsetX, y: event.offsetY});
-        contextMenu.addChild(menuItemBass3);
-
         this.viewContextMenu = contextMenu;
+        contextMenu.addChild(menuItemBass3);
+        this.addChild(contextMenu);
     }
 
-    handleModuleSelect(event: MouseEvent) {
-        this.selectedModule = event.target;
-        if(event.shiftKey) {
-            this.connection = {
-                from: {
-                    x: event.target.position.x + event.offsetX,
-                    y: event.target.position.y + event.offsetY,
-                },
-                to: {
-                    x: event.target.position.x + event.offsetX,
-                    y: event.target.position.y + event.offsetY,
-                },
-            }
-        }
-    }
+    handleConnectModuleEnd(event: MouseEvent) {
+        this.children
+            .filter((node: Node) => node instanceof Module)
+            .forEach((node: Node) => node.removeEventListener('mouseUp', this.handleConnectModuleEnd));
 
-    handleModuleDeselect(event: MouseEvent) {
-        if(this.connection && event.target !== this && event.target !== this.selectedModule) {
-            this.fire('on-module-connect', {
-                src: this.selectedModule.key,
-                dest: event.target.key,
-            })
+        this.removeEventListener('mouseMove', this.handleConnectModule);
+        this.removeEventListener('mouseUp', this.handleConnectModuleEnd);
+
+        if(event.target instanceof Module) {
+            this.fire('on-moduleConnect', <ModuleConnectionRequest>{
+                from: this.connectModule.config.key,
+                to: event.target.config.key,
+            });
         }
+
+        this.connectModule = undefined;
         this.connection = undefined;
-        this.selectedModule = undefined;
     }
 
-    handleMouseUp(event: MouseEvent) {
-        this.viewContextMenu = undefined;
-        this.connection = undefined;
-        this.selectedModule = undefined;
+    handleConnectModuleStart(event: CustomEvent<ModuleProp>) {
+        this.connection = {
+            from: {x: event.detail.position.x, y: event.detail.position.y},
+            to: {x: event.detail.position.x, y: event.detail.position.y},
+        };
+        this.children
+            .filter((node: Node) => node instanceof Module)
+            .forEach((node: Node) => node.addEventListener('mouseUp', this.handleConnectModuleEnd));
+
+        this.connectModule = <Module>this.children
+            .filter((node: Node) => node.key === event.detail.key)
+            .reduce((a, b) => b, undefined);
+
+        this.addEventListener('mouseMove', this.handleConnectModule);
+        this.addEventListener('mouseUp', this.handleConnectModuleEnd);
     }
 
-    handleMouseMove(event: MouseEvent) {
-        if(this.selectedModule) {
-            if(this.connection) {
-                this.connection.to = {
-                    x: event.offsetX,
-                    y: event.offsetY,
-                }
-            } else {
-                this.state.modules.set(this.selectedModule.key, {
-                    ...this.state.modules.get(this.selectedModule.key),
-                    position: {
-                        x: (event.offsetX) - 10, //@todo
-                        y: (event.offsetY) - 10, //@todo
-                    }
-                });
-            }
-        }
+    handleConnectModule(event: MouseEvent) {
+        this.connection = {
+            from: this.connection.from,
+            to: {x: event.offsetX, y: event.offsetY},
+        };
+    }
+
+    private getModuleByKey(key: any): Module {
+        return this.children
+            .filter((node: Node) => node.key === key)
+            .reduce<Module>((a: Module, b: Module) => b, undefined);
     }
 
     draw(x: number = 0, y: number = 0): void {
 
-        this.drawBorder({x:2, y:2, width: this.width-4, height: this.height-4}, true);
+        this.context.save();
+        this.context.lineCap = "square";
+        this.context.translate(0.5, 0.5);
+
+        this.context.fillStyle = 'rgb(218, 214, 201)';
+        this.context.fillRect(2, 2, this.width - 4, this.height -2 -2);
+
+        this.context.strokeStyle = 'rgb(128, 128, 128)';
+        this.context.beginPath();
+        this.context.moveTo(2, this.height -2 -2);
+        this.context.lineTo(2, 2);
+        this.context.lineTo(this.width - 4, 2);
+        this.context.stroke();
+
+
+        this.context.strokeStyle = 'white';
+        this.context.beginPath();
+        this.context.moveTo(2, this.height -2 -2);
+        this.context.lineTo(this.width - 4, this.height -2 -2);
+        this.context.lineTo(this.width - 4, 2);
+        this.context.stroke();
+
+
+        this.context.restore();
 
         //Draw temp connection
         if(this.connection) {
@@ -147,35 +190,25 @@ export default class MachineView extends Node {
             this.context.restore();
         }
 
-        //Draw connections
-        Array.from(this.state.modules.entries()).forEach(([key, module]) => {
-            module.ref.forEach(ref => {
-                const refModule = this.state.modules.get(ref);
-                this.context.save();
-                this.context.beginPath();
-                this.context.moveTo(module.position.x + 50, module.position.y + 25);
-                this.context.lineTo(refModule.position.x + 50, refModule.position.y + 25);
-                this.context.stroke();
-                this.context.restore();
-            })
-        });
+        //Draw permanent connection
+        this.children
+            .filter((node: Node) => node instanceof Module)
+            .forEach((node: Module) => {
+                node.config.ref.forEach((ref: number) => {
+                    const refModule: Module = this.getModuleByKey(ref);
+                    this.context.save();
+                    this.context.beginPath();
+                    this.context.moveTo(node.position.x + node.dimensions.width / 2, node.position.y + node.dimensions.height / 2);
+                    this.context.lineTo(refModule.position.x + node.dimensions.width / 2, refModule.position.y + node.dimensions.height / 2);
+                    this.context.stroke();
+                    this.context.restore();
+                });
+            });
 
         this.context.save();
-
-        //Reason about the modules
-        const modules = this.moduleList();
-
-        //Set modules
-        this.setChildren(modules);
-
-        //Set menus
-        if(this.viewContextMenu) {
-            this.addChild(this.viewContextMenu);
-        }
 
         super.draw(x, y);
 
         this.context.restore();
-
     }
 }

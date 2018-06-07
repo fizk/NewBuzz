@@ -4,7 +4,9 @@ export default class EventManager {
 
     events: {[event: string]: ((detail: any) => void)[]} = {};
 
-    register(event: string, callback: (detail: any) => void) {
+    callback: () => void = () => {};
+
+    register(event: string, callback: (detail: CustomEvent<any>) => void) {
         if(!this.events.hasOwnProperty(event)) {
             this.events[event] = [];
         }
@@ -15,7 +17,8 @@ export default class EventManager {
         if(this.events.hasOwnProperty(event)) {
             this.events[event].forEach(callback => {
                 callback(new CustomEvent(detail));
-            })
+            });
+            this.callback();
         }
     }
 }
